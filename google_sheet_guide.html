@@ -1,0 +1,1050 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Googleスプレッドシート入出庫在庫管理ガイド＆体験シミュレーター</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        hygge: {
+                            bg: '#FAF7F2',       /* リネンホワイト / 優しいペールアイボリー */
+                            card: '#FFFFFF',     /* ホワイト */
+                            text: '#423E3B',     /* チャコールオーク / 暖かみのある墨色 */
+                            woodLight: '#EADFD3',/* 明るいパイン材 / バーチウッド */
+                            woodDark: '#D9C5B2', /* 落ち着いたオーク材 */
+                            accent: '#DEB887',   /* バーリウッド（アクセントカラー） */
+                            accentSoft: '#F3EDE4', /* ふわっとしたベージュ */
+                            sage: '#8FA190',     /* 北欧のセージグリーン（自然を連想させる調和色） */
+                            sageLight: '#EBF0EC',/* 淡いセージグリーン */
+                            gray: '#A9A9A9',     /* ダークグレー */
+                            
+                            /* スプレッドシートをヒュッゲに染めるお洒落なマイルドフォーマットカラー */
+                            sheetHeader: '#F3EDE4', /* グリッド見出し（A, B, C / 1, 2, 3） */
+                            sheetSelect: '#DEB887', /* 選択中セルの太枠・ハイライト */
+                            calBlue: '#7A96B2',   /* ノルディックブルー */
+                            calGreen: '#8FA190',  /* セージグリーン */
+                            calYellow: '#E6C18E', /* バーチゴールド */
+                            calRed: '#C9948A',    /* テラコッタピンク */
+                        }
+                    },
+                    fontFamily: {
+                        sans: ['"Segoe UI"', 'Roboto', '"Helvetica Neue"', 'Arial', '"Noto Sans JP"', 'sans-serif'],
+                    }
+                }
+            }
+        }
+    </script>
+    <!-- Lucide Icons (CDN) -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        /* スムーズスクロール */
+        html {
+            scroll-behavior: smooth;
+        }
+        /* 北欧ミニマルなスクロールバー */
+        ::-webkit-scrollbar {
+            width: 5px;
+            height: 5px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #FAF7F2;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #D9C5B2;
+            border-radius: 3px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #DEB887;
+        }
+        /* スムーズトランジション */
+        .transition-hygge {
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        /* 体験ステップ強調用の優しく温かいゆらぎ（ゴールド） */
+        @keyframes pulse-border {
+            0%, 100% {
+                outline: 2px solid #DEB887;
+                outline-offset: 1px;
+                box-shadow: 0 0 14px rgba(222, 184, 135, 0.6);
+            }
+            50% {
+                outline: 2px solid transparent;
+                outline-offset: 0px;
+                box-shadow: 0 0 0px rgba(222, 184, 135, 0);
+            }
+        }
+        .highlight-active {
+            animation: pulse-border 1.5s infinite;
+            position: relative;
+            z-index: 40;
+        }
+    </style>
+</head>
+<body class="bg-hygge-bg text-hygge-text font-sans antialiased selection:bg-hygge-accent/30 selection:text-hygge-text flex flex-col min-h-screen">
+
+    <!-- ヒーローヘッダー (Hygge & Wood ビジュアル) -->
+    <header class="relative overflow-hidden bg-hygge-card border-b border-hygge-woodLight py-10 px-6">
+        <!-- 北欧調アブストラクトウッドサークル装飾 (SVG) -->
+        <div class="absolute right-0 top-0 h-full w-1/3 opacity-20 pointer-events-none hidden md:block">
+            <svg viewBox="0 0 200 200" class="w-full h-full text-hygge-woodLight" fill="currentColor">
+                <path d="M40,-53C54.7,-43.8,71.3,-35.1,77.7,-21.8C84,-8.5,80.1,9.4,72.4,24.4C64.6,39.4,53,51.6,39.2,60.2C25.4,68.7,9.3,73.6,-6.9,71.5C-23.1,69.4,-39.4,60.2,-52.1,47.4C-64.8,34.6,-73.9,18.1,-75.4,1.1C-76.9,-16,-70.8,-33.5,-59.5,-44C-48.2,-54.5,-31.6,-57.9,-16.8,-63.9C-2.1,-69.9,10.7,-78.5,23.1,-75.6C35.5,-72.7,47.4,-58.3,40,-53Z" transform="translate(130, 100)" />
+            </svg>
+        </div>
+        <div class="absolute left-10 top-6 text-hygge-sage/30">
+            <!-- 温かなハーブティー風SVG -->
+            <svg class="w-12 h-12" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 3v4M12 11v10M9 11h6M10 21h4" />
+            </svg>
+        </div>
+
+        <div class="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-6 relative z-10">
+            <div class="space-y-3 max-w-2xl">
+                <div class="inline-flex items-center gap-2 bg-hygge-sageLight text-hygge-sage px-3 py-1 rounded-full text-xs font-medium tracking-wider">
+                    <i data-lucide="sparkles" class="w-3.5 h-3.5"></i> 体験型インタラクティブ・レッスン
+                </div>
+                <h1 class="text-2xl md:text-4xl font-normal text-hygge-text tracking-tight leading-tight">
+                    Googleスプレッドシート <br><span class="font-bold text-hygge-accent">入出庫・在庫推移管理の入門書</span>
+                </h1>
+                <p class="text-xs md:text-sm text-hygge-text/80 leading-relaxed font-light">
+                    日々流れていくモノの入庫と出庫、そして手元に残る大切な在庫。<br>
+                    在庫管理表をスッキリ整えるのは、お部屋を美しくお掃除するような心地よい作業です。右側の本物そっくりのスプレッドシート画面を操作して、やさしく基本を学びましょう。
+                </p>
+            </div>
+            
+            <div class="w-full md:w-auto mt-2 md:mt-0 flex items-center gap-3 bg-hygge-accentSoft/60 border border-hygge-woodLight px-4 py-3 rounded-2xl text-xs font-light max-w-md">
+                <i data-lucide="help-circle" class="w-5 h-5 text-hygge-accent shrink-0"></i>
+                <span class="text-hygge-text/90 leading-relaxed">
+                    左側のガイド手順を進めながら、右側の画面で実際に<strong>日付の自動補完</strong>、<strong>在庫の推移計算式</strong>、<strong>SUM関数合計</strong>、<strong>見出しデザイン</strong>を体験できます！
+                </span>
+            </div>
+        </div>
+    </header>
+
+    <!-- メインコンテンツ -->
+    <main class="flex-1 max-w-7xl w-full mx-auto p-4 md:p-6 grid grid-cols-1 lg:grid-cols-12 gap-6">
+        
+        <!-- 左：ガイド・説明手順パネル (5/12) -->
+        <div class="lg:col-span-5 flex flex-col space-y-4">
+            
+            <!-- ステップ進行状況 -->
+            <div class="bg-white rounded-3xl p-5 shadow-sm border border-hygge-woodLight/60">
+                <div class="flex justify-between items-center mb-3">
+                    <span class="text-xs font-bold text-hygge-gray uppercase tracking-widest">ROADMAP / 道しるべ</span>
+                    <span id="step-badge" class="text-xs bg-hygge-accent text-white font-bold px-3 py-1 rounded-full shadow-sm">ステップ 1 / 5</span>
+                </div>
+                <!-- プログレスバー -->
+                <div class="w-full bg-hygge-accentSoft h-2 rounded-full overflow-hidden mb-4 border border-hygge-woodLight/30">
+                    <div id="step-progress" class="bg-hygge-accent h-full transition-all duration-300 rounded-full" style="width: 20%;"></div>
+                </div>
+                <!-- ステップボタン一覧 -->
+                <div class="grid grid-cols-5 gap-1.5 text-center">
+                    <button onclick="goToStep(1)" id="step-tab-1" class="text-[11px] py-1.5 rounded-xl font-medium bg-hygge-accent text-white transition-hygge font-bold shadow-sm">1. 基本</button>
+                    <button onclick="goToStep(2)" id="step-tab-2" class="text-[11px] py-1.5 rounded-xl font-medium bg-hygge-bg text-hygge-text/70 hover:bg-hygge-accentSoft transition-hygge">2. オート</button>
+                    <button onclick="goToStep(3)" id="step-tab-3" class="text-[11px] py-1.5 rounded-xl font-medium bg-hygge-bg text-hygge-text/70 hover:bg-hygge-accentSoft transition-hygge">3. 在庫式</button>
+                    <button onclick="goToStep(4)" id="step-tab-4" class="text-[11px] py-1.5 rounded-xl font-medium bg-hygge-bg text-hygge-text/70 hover:bg-hygge-accentSoft transition-hygge">4. 合計</button>
+                    <button onclick="goToStep(5)" id="step-tab-5" class="text-[11px] py-1.5 rounded-xl font-medium bg-hygge-bg text-hygge-text/70 hover:bg-hygge-accentSoft transition-hygge">5. 装飾</button>
+                </div>
+            </div>
+
+            <!-- ガイド本文カード -->
+            <div class="bg-white rounded-3xl p-6 md:p-8 shadow-sm border border-hygge-woodLight/60 flex-1 flex flex-col justify-between min-h-[440px]">
+                <div>
+                    <!-- ステップ 1 -->
+                    <div id="guide-step-1" class="space-y-4">
+                        <div class="flex items-center gap-3 text-hygge-accent mb-2">
+                            <span class="p-2 bg-hygge-accentSoft rounded-2xl flex items-center justify-center">
+                                <i data-lucide="layout" class="w-6 h-6"></i>
+                            </span>
+                            <h2 class="text-lg font-bold text-hygge-text">ステップ1: 在庫管理表の基本を覚えよう</h2>
+                        </div>
+                        
+                        <p class="text-hygge-text/80 leading-relaxed text-xs md:text-sm font-light">
+                            Googleスプレッドシートを使った「入出庫・在庫推移表」の基本レイアウトです。
+                            モノの動きを正確に記録するため、この表には縦と横に次の4つの情報（列）を等幅に配置しています。
+                        </p>
+
+                        <div class="space-y-3 mt-4 text-[11px] text-hygge-text/90">
+                            <div class="p-3 bg-hygge-bg rounded-2xl border border-hygge-woodLight/40 hover:border-hygge-accent transition-hygge flex items-start gap-2.5">
+                                <span class="font-bold text-hygge-accent mt-0.5">A列：日付</span>
+                                <p class="font-light">入出庫があった「日にち」を記録します。</p>
+                            </div>
+                            <div class="p-3 bg-hygge-bg rounded-2xl border border-hygge-woodLight/40 hover:border-hygge-accent transition-hygge flex items-start gap-2.5">
+                                <span class="font-bold text-hygge-sage mt-0.5">B・C列：入庫と出庫</span>
+                                <p class="font-light">倉庫に「入ってきた数（入庫）」と、「出ていった数（出庫）」の数字を入力します。</p>
+                            </div>
+                            <div class="p-3 bg-hygge-bg rounded-2xl border border-hygge-woodLight/40 hover:border-hygge-accent transition-hygge flex items-start gap-2.5">
+                                <span class="font-bold text-hygge-calBlue mt-0.5">D列：本日在庫</span>
+                                <p class="font-light">その日の終わりに倉庫に「残っている在庫数」です。手計算ではなく数式で自動計算させます。</p>
+                            </div>
+                        </div>
+
+                        <div class="bg-hygge-accentSoft/40 border border-hygge-woodLight rounded-2xl p-4 text-[11px] text-hygge-text/95 flex gap-2.5 mt-4">
+                            <i data-lucide="info" class="w-5 h-5 text-hygge-accent shrink-0"></i>
+                            <div>
+                                <strong class="text-hygge-text">お試しアクション：</strong><br>
+                                右側の在庫表の適当な<span class="font-semibold underline text-hygge-accent cursor-pointer">セルをクリック</span>してみましょう！左上の「セル住所表示」や、画面上部の「数式バー」に入っている値や数式が自動でパチパチ切り替わります。
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- ステップ 2 -->
+                    <div id="guide-step-2" class="space-y-4 hidden">
+                        <div class="flex items-center gap-3 text-hygge-accent mb-2">
+                            <span class="p-2 bg-hygge-accentSoft rounded-2xl flex items-center justify-center">
+                                <i data-lucide="sparkles" class="w-6 h-6"></i>
+                            </span>
+                            <h2 class="text-lg font-bold text-hygge-text">ステップ2: 日付を「オートフィル」で埋めよう</h2>
+                        </div>
+                        
+                        <p class="text-hygge-text/80 leading-relaxed text-xs md:text-sm font-light">
+                            毎日手作業で「6月2日」「6月3日」…と入力するのは大変です。スプレッドシートには、最初の数日分からパターンを予測して自動で日付を埋めてくれる <strong>オートフィル</strong> という非常に便利な自動補完機能があります。
+                        </p>
+
+                        <div class="space-y-3 text-xs text-hygge-text/85 font-light">
+                            <div class="p-3.5 bg-hygge-bg rounded-2xl border border-hygge-woodLight/40 leading-relaxed">
+                                <strong class="text-hygge-text block font-semibold mb-0.5">✨ 実画面のオートフィル動作</strong>
+                                本物の画面では、選択したセルの右下に現れる小さな四角（フィルハンドル）をマウスで下へググッと引っ張るだけで、連続する日付が瞬時に補完されます。
+                            </div>
+                        </div>
+
+                        <div class="bg-[#FAF7F2] border border-hygge-woodLight rounded-2xl p-4 text-[11px] text-hygge-text/90 space-y-2 mt-4">
+                            <p class="font-bold text-xs text-hygge-accent flex items-center gap-1">
+                                <i data-lucide="wand-2" class="w-4 h-4"></i> 🎯 実際にやってみよう！
+                            </p>
+                            <ol class="list-decimal pl-4 space-y-1.5 font-light">
+                                <li>右側シートの <strong>セル A2</strong>（「6月1日」と書いてあります）をクリックして選択。</li>
+                                <li>ツールバーにある、金色にピカピカ光る <strong class="text-hygge-accent underline cursor-pointer"><i class="inline-block w-3.5 h-3.5" data-lucide="sparkles"></i> オートフィル</strong> ボタンをクリック。</li>
+                                <li>A3に「6月2日」、A4に「6月3日」、A5に「6月4日」が自動でサーッと美しく埋まります！</li>
+                            </ol>
+                        </div>
+                    </div>
+
+                    <!-- ステップ 3 -->
+                    <div id="guide-step-3" class="space-y-4 hidden">
+                        <div class="flex items-center gap-3 text-hygge-accent mb-2">
+                            <span class="p-2 bg-hygge-accentSoft rounded-2xl flex items-center justify-center">
+                                <i data-lucide="calculator" class="w-6 h-6"></i>
+                            </span>
+                            <h2 class="text-lg font-bold text-hygge-text">ステップ3: 在庫推移を計算する「数式」</h2>
+                        </div>
+                        
+                        <p class="text-hygge-text/80 leading-relaxed text-xs md:text-sm font-light">
+                            在庫数の基本ルールは <strong>「前日在庫 ＋ 本日入庫 － 本日出庫 ＝ 本日在庫」</strong> です。<br>
+                            このルールを「数式」としてセルに設定しておけば、入出庫の値が変わっても自動的に在庫推移が再計算されます。
+                        </p>
+
+                        <div class="space-y-2.5 text-xs text-hygge-text/85 font-light bg-hygge-bg p-4 rounded-2xl border border-hygge-woodLight/40 leading-relaxed">
+                            <div class="font-bold text-hygge-text flex items-center gap-1"><i data-lucide="terminal" class="w-4 h-4 text-hygge-accent"></i> 6月2日の在庫（住所：D3）を求める数式</div>
+                            <code class="block bg-white p-2 rounded-xl text-center border border-hygge-woodLight font-mono font-bold text-hygge-accent text-sm">=D2 + B3 - C3</code>
+                            <p class="text-[10px] text-hygge-text/75 mt-1">※ D2（前日の在庫70）に B3（入庫50）を足し、C3（出庫40）を引く、という意味になります。</p>
+                        </div>
+
+                        <div class="bg-[#FAF7F2] border border-hygge-woodLight rounded-2xl p-4 text-[11px] text-hygge-text/90 space-y-2 mt-4">
+                            <p class="font-bold text-xs text-hygge-accent flex items-center gap-1">
+                                <i data-lucide="play" class="w-4 h-4"></i> 🎯 実際にやってみよう！
+                            </p>
+                            <ol class="list-decimal pl-4 space-y-1.5 font-light">
+                                <li>在庫数を自動計算したい <strong>セル D3</strong>（空欄になっています）をクリックして選択。</li>
+                                <li>ツールバーにある、金色にピカピカ光る <strong class="text-hygge-accent underline cursor-pointer"><i class="inline-block w-3.5 h-3.5" data-lucide="terminal"></i> 在庫数式を適用</strong> ボタンをクリック。</li>
+                                <li>D3、D4、D5のセルにそれぞれ正しい在庫推移（80 ➔ 100 ➔ 170）が、自動計算されてスッキリ表示されます！</li>
+                            </ol>
+                        </div>
+                    </div>
+
+                    <!-- ステップ 4 -->
+                    <div id="guide-step-4" class="space-y-4 hidden">
+                        <div class="flex items-center gap-3 text-hygge-accent mb-2">
+                            <span class="p-2 bg-hygge-accentSoft rounded-2xl flex items-center justify-center">
+                                <i data-lucide="sigma" class="w-6 h-6"></i>
+                            </span>
+                            <h2 class="text-lg font-bold text-hygge-text">ステップ4: SUM関数で期間中の合計値をだす</h2>
+                        </div>
+                        
+                        <p class="text-hygge-text/80 leading-relaxed text-xs md:text-sm font-light">
+                            4日間のうちに「合計で何個入庫されたのか」を集計します。大量のセルの合計値を一瞬で足し合わせるには、<strong>SUM（サム）関数</strong> という便利な数式を使います。
+                        </p>
+
+                        <div class="space-y-2 text-xs text-hygge-text/85 font-light bg-hygge-bg p-4 rounded-2xl border border-hygge-woodLight/40 leading-relaxed">
+                            <div class="font-bold text-hygge-text flex items-center gap-1"><i data-lucide="calculator" class="w-4 h-4 text-hygge-sage"></i> 合計を求める数式（SUM関数）</div>
+                            <code class="block bg-white p-2 rounded-xl text-center border border-hygge-woodLight font-mono font-bold text-hygge-sage text-sm">=SUM(B2:B5)</code>
+                            <p class="text-[10px] text-hygge-text/75 mt-1">※ B2からB5までのマス目（入庫数）を、すべて合計する、という意味です。</p>
+                        </div>
+
+                        <div class="bg-[#FAF7F2] border border-hygge-woodLight rounded-2xl p-4 text-[11px] text-hygge-text/90 space-y-2 mt-4">
+                            <p class="font-bold text-xs text-hygge-accent flex items-center gap-1">
+                                <i data-lucide="activity" class="w-4 h-4"></i> 🎯 実際にやってみよう！
+                            </p>
+                            <ol class="list-decimal pl-4 space-y-1.5 font-light">
+                                <li>入庫数の合計を出したい <strong>セル B6</strong> をクリックして選択。</li>
+                                <li>ツールバーにある、ピカピカ光る <strong class="text-hygge-accent underline cursor-pointer"><i class="inline-block w-3.5 h-3.5" data-lucide="sigma"></i> SUM合計</strong> ボタンをクリック。</li>
+                                <li>数式バーにSUM関数が挿入され、合計値である <strong>350</strong>（100+50+80+120）が驚くほどの速さで自動算出されます！</li>
+                            </ol>
+                        </div>
+                    </div>
+
+                    <!-- ステップ 5 -->
+                    <div id="guide-step-5" class="space-y-4 hidden">
+                        <div class="flex items-center gap-3 text-hygge-accent mb-2">
+                            <span class="p-2 bg-hygge-accentSoft rounded-2xl flex items-center justify-center">
+                                <i data-lucide="palette" class="w-6 h-6"></i>
+                            </span>
+                            <h2 class="text-lg font-bold text-hygge-text">ステップ5: 見出しを整えて見やすくしよう</h2>
+                        </div>
+                        
+                        <p class="text-hygge-text/80 leading-relaxed text-xs md:text-sm font-light">
+                            数字がずらりと並ぶ在庫表も、一番上の「見出し（ヘッダー行）」の文字を太字に強調し、優しい色を塗るだけで、お部屋をお掃除した後のようにスッキリと美しい印象に生まれ変わります。
+                        </p>
+
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-3 mt-2 text-center text-xs">
+                            <div class="p-3 bg-hygge-accentSoft/30 border border-hygge-woodLight/40 rounded-2xl flex flex-col justify-between">
+                                <span class="text-base font-bold text-hygge-text">Bold / 太字 (B)</span>
+                                <p class="text-[9px] text-hygge-text/80 leading-relaxed font-light mt-1">「日付」や「在庫数」などのラベル文字を太くして、境界をはっきり際立たせます。</p>
+                            </div>
+                            <div class="p-3 bg-[#EBF0EC] border border-hygge-sage/10 rounded-2xl flex flex-col justify-between">
+                                <span class="text-base text-hygge-sage">🎨 背景色（ペイント）</span>
+                                <p class="text-[9px] text-hygge-text/80 leading-relaxed font-light mt-1">見出しセルにマイルドなセージグリーンなどを乗せて、全体の清潔感を高めます。</p>
+                            </div>
+                        </div>
+
+                        <div class="bg-[#FAF7F2] border border-hygge-woodLight rounded-2xl p-4 text-[11px] text-hygge-text/90 space-y-2 mt-4">
+                            <p class="font-bold text-xs text-hygge-accent flex items-center gap-1">
+                                <i data-lucide="check" class="w-4 h-4"></i> 🎯 実際にやってみよう！
+                            </p>
+                            <ol class="list-decimal pl-4 space-y-1.5 font-light">
+                                <li>見出しである <strong>1行目（A1からD1までの範囲）</strong> を選択します（現在、自動的に範囲が明るく選択されています）。</li>
+                                <li>ツールバーの、金色に点滅している <strong class="text-hygge-accent underline cursor-pointer"><i class="inline-block w-3.5 h-3.5" data-lucide="bold"></i> 太字</strong> ボタンと、その横の <strong class="text-hygge-accent underline cursor-pointer"><i class="inline-block w-3.5 h-3.5" data-lucide="paint-bucket"></i> 塗りつぶしの色</strong> ボタンを順にクリック。</li>
+                                <li>文字が力強い太字になり、背景がスッと上品なセージグリーン色に染まれば大成功です！</li>
+                            </ol>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- コントロールボタン -->
+                <div class="flex justify-between items-center pt-4 border-t border-hygge-woodLight mt-6">
+                    <button id="prev-btn" onclick="prevStep()" class="px-4 py-2 border border-hygge-woodLight rounded-xl text-xs font-medium text-hygge-text hover:bg-hygge-accentSoft transition-hygge disabled:opacity-50 disabled:pointer-events-none" disabled>
+                        ← 戻る
+                    </button>
+                    <button id="next-btn" onclick="nextStep()" class="px-5 py-2 bg-hygge-accent text-white rounded-xl text-xs font-bold hover:bg-hygge-accent/80 shadow-md shadow-hygge-accent/20 transition-all">
+                        次のステップへ →
+                    </button>
+                </div>
+            </div>
+
+            <!-- お役立ち豆知識 -->
+            <div class="bg-gradient-to-r from-hygge-woodDark to-hygge-accent text-white rounded-3xl p-5 shadow-sm">
+                <h3 class="font-bold text-xs md:text-sm mb-1.5 flex items-center gap-1.5">
+                    <i data-lucide="lamp" class="w-4 h-4 text-white"></i> スッキリ暮らすデジタル整頓の知恵
+                </h3>
+                <p class="text-[11px] text-white/95 leading-relaxed font-light" id="tips-box">
+                    スプレッドシートのグリッド（罫線）は、太い黒色で引くのではなく、パイン材や砂浜を思わせるアースカラー、または淡いグレーに統一すると、視界がうるさくならず驚くほど目の疲れが軽減します。
+                </p>
+            </div>
+
+        </div>
+
+        <!-- 右：インタラクティブ・シミュレーター (7/12) -->
+        <div class="lg:col-span-7 flex flex-col space-y-4">
+            
+            <!-- シミュレーターの見出し -->
+            <div class="bg-white px-5 py-3 rounded-2xl shadow-sm border border-hygge-woodLight/60 flex justify-between items-center text-xs">
+                <span class="font-medium text-hygge-text/80 flex items-center gap-2">
+                    <span class="w-2.5 h-2.5 bg-hygge-sage rounded-full animate-pulse"></span>
+                    入出庫・在庫推移管理シート（体験シミュレーター）
+                </span>
+                <button onclick="resetSimulator()" class="text-hygge-calRed font-bold hover:underline flex items-center gap-1 transition-hygge">
+                    <i data-lucide="rotate-ccw" class="w-3.5 h-3.5"></i> シートをリセットする
+                </button>
+            </div>
+
+            <!-- Googleスプレッドシート風 UI (Hyggeカスタマイズ) -->
+            <div class="bg-white rounded-3xl shadow-md border border-hygge-woodLight/80 overflow-hidden flex flex-col h-[590px] text-xs">
+                
+                <!-- 1. 最新の実画面メニューヘッダー (スター、フォルダ、クラウド、デプロイ、共有) -->
+                <div class="bg-[#FAF7F2]/60 px-4 py-2 flex items-center justify-between border-b border-hygge-woodLight/40">
+                    <div class="flex items-center space-x-2">
+                        <!-- スプレッドシート緑風アイコンをHygge調セージカラーで -->
+                        <div class="w-6 h-6 rounded-lg bg-hygge-sage flex items-center justify-center text-white shadow-sm shrink-0">
+                            <i data-lucide="sheet" class="w-4 h-4"></i>
+                        </div>
+                        <div class="flex flex-col">
+                            <div class="flex items-center space-x-2">
+                                <span class="font-bold text-xs text-hygge-text truncate max-w-[160px] md:max-w-[240px]">入出庫在庫推移管理表（2026年6月）</span>
+                                <button class="text-hygge-gray hover:text-hygge-accent transition-colors"><i data-lucide="star" class="w-3.5 h-3.5"></i></button>
+                                <button class="text-hygge-gray hover:text-hygge-accent transition-colors"><i data-lucide="folder" class="w-3.5 h-3.5"></i></button>
+                                <button class="text-hygge-gray hover:text-hygge-accent transition-colors"><i data-lucide="cloud" class="w-3.5 h-3.5"></i></button>
+                            </div>
+                            <!-- メニューバーの実画面再現 -->
+                            <div class="flex items-center space-x-3 text-[10px] text-hygge-text/75 mt-0.5 font-sans">
+                                <span class="hover:bg-hygge-accentSoft px-1 rounded cursor-pointer">ファイル</span>
+                                <span class="hover:bg-hygge-accentSoft px-1 rounded cursor-pointer">編集</span>
+                                <span class="hover:bg-hygge-accentSoft px-1 rounded cursor-pointer">表示</span>
+                                <span class="hover:bg-hygge-accentSoft px-1 rounded cursor-pointer">挿入</span>
+                                <span class="hover:bg-hygge-accentSoft px-1 rounded cursor-pointer">表示形式</span>
+                                <span class="hover:bg-hygge-accentSoft px-1 rounded cursor-pointer">データ</span>
+                                <span class="hover:bg-hygge-accentSoft px-1 rounded cursor-pointer">ツール</span>
+                                <span class="hover:bg-hygge-accentSoft px-1 rounded cursor-pointer text-hygge-accent font-semibold flex items-center gap-0.5"><i data-lucide="sparkles" class="w-2.5 h-2.5"></i> Gemini</span>
+                                <span class="hover:bg-hygge-accentSoft px-1 rounded cursor-pointer">拡張機能</span>
+                                <span class="hover:bg-hygge-accentSoft px-1 rounded cursor-pointer">ヘルプ</span>
+                            </div>
+                        </div>
+                    </div>
+                    <!-- 共有とアカウントアイコン -->
+                    <div class="flex items-center space-x-2">
+                        <button id="sim-share-btn" class="bg-hygge-accent hover:bg-hygge-accent/80 text-white font-bold px-3 py-1.5 rounded-xl text-[10px] flex items-center gap-1 shadow-sm transition-hygge">
+                            <i data-lucide="users" class="w-3 h-3"></i> 共有
+                        </button>
+                        <div class="w-5.5 h-5.5 rounded-full bg-hygge-sage text-[9px] flex items-center justify-center text-white font-bold select-none cursor-pointer">
+                            👤
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 2. 完全再現されたスプレッドシートツールバー -->
+                <div class="bg-white border-b border-hygge-woodLight/50 p-1.5 flex items-center space-x-1 overflow-x-auto select-none" style="scrollbar-width: none;">
+                    
+                    <!-- 検索ボックス -->
+                    <div class="flex items-center bg-hygge-bg/50 px-2 py-1 rounded-xl border border-hygge-woodLight/60 text-[10px] text-hygge-gray w-20 md:w-24 shrink-0 mr-1">
+                        <i data-lucide="search" class="w-3 h-3 mr-1 text-hygge-accent"></i>
+                        <span class="truncate">メニュー</span>
+                    </div>
+
+                    <!-- Undo / Redo / Print / Format -->
+                    <button class="p-1 hover:bg-hygge-accentSoft rounded-lg text-hygge-text shrink-0"><i data-lucide="undo-2" class="w-3.5 h-3.5"></i></button>
+                    <button class="p-1 hover:bg-hygge-accentSoft rounded-lg text-hygge-text shrink-0"><i data-lucide="redo-2" class="w-3.5 h-3.5"></i></button>
+                    <button class="p-1 hover:bg-hygge-accentSoft rounded-lg text-hygge-text shrink-0"><i data-lucide="printer" class="w-3.5 h-3.5"></i></button>
+                    <button class="p-1 hover:bg-hygge-accentSoft rounded-lg text-hygge-text shrink-0"><i data-lucide="paintbrush" class="w-3.5 h-3.5"></i></button>
+                    
+                    <!-- Zoom -->
+                    <div class="text-[10px] font-sans px-1.5 py-0.5 hover:bg-hygge-accentSoft rounded-lg cursor-pointer flex items-center shrink-0">
+                        100% <i data-lucide="chevron-down" class="w-2.5 h-2.5 ml-0.5 text-hygge-gray"></i>
+                    </div>
+
+                    <div class="w-px h-4 bg-hygge-woodLight shrink-0 mx-0.5"></div>
+
+                    <!-- Number Format (￥, %, .0, .00, 123) -->
+                    <button class="px-1 py-0.5 font-bold hover:bg-hygge-accentSoft rounded-lg text-hygge-text text-[11px] shrink-0">￥</button>
+                    <button class="px-1 py-0.5 font-bold hover:bg-hygge-accentSoft rounded-lg text-hygge-text text-[11px] shrink-0">%</button>
+                    <button class="px-1 py-0.5 font-sans hover:bg-hygge-accentSoft rounded-lg text-hygge-text text-[10px] flex items-center shrink-0">.0<i data-lucide="arrow-left" class="w-2 h-2"></i></button>
+                    <button class="px-1 py-0.5 font-sans hover:bg-hygge-accentSoft rounded-lg text-hygge-text text-[10px] flex items-center shrink-0">.00<i data-lucide="arrow-right" class="w-2 h-2"></i></button>
+                    <div class="text-[10px] font-sans px-1.5 py-0.5 hover:bg-hygge-accentSoft rounded-lg cursor-pointer flex items-center shrink-0">
+                        123 <i data-lucide="chevron-down" class="w-2.5 h-2.5 ml-0.5 text-hygge-gray"></i>
+                    </div>
+
+                    <div class="w-px h-4 bg-hygge-woodLight shrink-0 mx-0.5"></div>
+
+                    <!-- Fonts & Font Size -->
+                    <div class="text-[10px] font-sans px-1.5 py-0.5 hover:bg-hygge-accentSoft rounded-lg cursor-pointer flex items-center shrink-0 max-w-[80px]">
+                        <span class="truncate">デフォルト</span> <i data-lucide="chevron-down" class="w-2.5 h-2.5 ml-0.5 text-hygge-gray"></i>
+                    </div>
+                    <div class="flex items-center space-x-1 shrink-0">
+                        <button class="w-4 h-4 flex items-center justify-center border border-hygge-woodLight/60 rounded text-[9px] hover:bg-hygge-accentSoft">-</button>
+                        <span class="text-[10px] font-mono w-4 text-center">10</span>
+                        <button class="w-4 h-4 flex items-center justify-center border border-hygge-woodLight/60 rounded text-[9px] hover:bg-hygge-accentSoft">+</button>
+                    </div>
+
+                    <div class="w-px h-4 bg-hygge-woodLight shrink-0 mx-0.5"></div>
+
+                    <!-- Text Styles (B, I, Strikethrough, Color, Fill) -->
+                    <button id="btn-bold" onclick="toggleBold()" class="p-1 hover:bg-hygge-accentSoft rounded-lg text-hygge-text shrink-0" title="太字にする"><i data-lucide="bold" class="w-3.5 h-3.5"></i></button>
+                    <button class="p-1 hover:bg-hygge-accentSoft rounded-lg text-hygge-text shrink-0"><i data-lucide="italic" class="w-3.5 h-3.5"></i></button>
+                    <button class="p-1 hover:bg-hygge-accentSoft rounded-lg text-hygge-text shrink-0"><i data-lucide="strikethrough" class="w-3.5 h-3.5"></i></button>
+                    <button class="p-1 hover:bg-hygge-accentSoft rounded-lg text-hygge-text flex flex-col items-center justify-center shrink-0">
+                        <span class="text-[11px] leading-none font-bold">A</span>
+                        <span class="w-3 h-0.5 bg-hygge-text rounded-full"></span>
+                    </button>
+                    
+                    <!-- 塗りつぶしの色 -->
+                    <button id="btn-color" onclick="applyBgColor('#EBF0EC')" class="p-1 hover:bg-hygge-accentSoft rounded-lg text-hygge-text flex items-center space-x-0.5 shrink-0" title="背景色を塗る（北欧セージグリーン）">
+                        <i data-lucide="paint-bucket" class="w-3.5 h-3.5"></i>
+                        <span class="w-1.5 h-1.5 rounded-full bg-hygge-sage"></span>
+                    </button>
+
+                    <!-- Borders & Merges -->
+                    <button class="p-1 hover:bg-hygge-accentSoft rounded-lg text-hygge-text shrink-0"><i data-lucide="grid-3x3" class="w-3.5 h-3.5"></i></button>
+                    <button class="p-1 hover:bg-hygge-accentSoft rounded-lg text-hygge-text shrink-0"><i data-lucide="merge" class="w-3.5 h-3.5"></i></button>
+
+                    <!-- Alignment -->
+                    <button class="p-1 hover:bg-hygge-accentSoft rounded-lg text-hygge-text shrink-0"><i data-lucide="align-center" class="w-3.5 h-3.5"></i></button>
+                    <button class="p-1 hover:bg-hygge-accentSoft rounded-lg text-hygge-text shrink-0 flex flex-col justify-center items-center"><i data-lucide="chevron-up" class="w-2.5 h-2.5 -mb-1 text-hygge-gray"></i><i data-lucide="chevron-down" class="w-2.5 h-2.5 text-hygge-gray"></i></button>
+                    <button class="p-1 hover:bg-hygge-accentSoft rounded-lg text-hygge-text shrink-0"><i data-lucide="wrap-text" class="w-3.5 h-3.5"></i></button>
+                    
+                    <div class="w-px h-4 bg-hygge-woodLight shrink-0 mx-0.5"></div>
+
+                    <!-- Insert & Data Tools (Link, Comment, Chart, Filter, Sigma) -->
+                    <button class="p-1 hover:bg-hygge-accentSoft rounded-lg text-hygge-text shrink-0"><i data-lucide="link" class="w-3.5 h-3.5"></i></button>
+                    <button class="p-1 hover:bg-hygge-accentSoft rounded-lg text-hygge-text shrink-0"><i data-lucide="message-square" class="w-3.5 h-3.5"></i></button>
+                    <button class="p-1 hover:bg-hygge-accentSoft rounded-lg text-hygge-text shrink-0"><i data-lucide="bar-chart-3" class="w-3.5 h-3.5"></i></button>
+                    <button class="p-1 hover:bg-hygge-accentSoft rounded-lg text-hygge-text shrink-0"><i data-lucide="filter" class="w-3.5 h-3.5"></i></button>
+                    
+                    <!-- 🪄 オートフィル (本入門用の補助体験ボタン) -->
+                    <button id="btn-autofill" onclick="triggerAutofill()" class="px-2 py-1 bg-white hover:bg-hygge-accentSoft border border-hygge-woodLight/60 rounded-xl text-[10px] font-bold text-hygge-text flex items-center gap-1 transition-hygge shrink-0" title="連続データを作成">
+                        <i data-lucide="sparkles" class="w-3 h-3 text-hygge-accent animate-pulse"></i> 🪄 オートフィル
+                    </button>
+
+                    <!-- 数式適用 (本日在庫用の補助体験ボタン) -->
+                    <button id="btn-calc" onclick="triggerCalc()" class="px-2 py-1 bg-white hover:bg-hygge-accentSoft border border-hygge-woodLight/60 rounded-xl text-[10px] font-bold text-hygge-text flex items-center gap-1 transition-hygge shrink-0" title="在庫計算の数式を適用する">
+                        <i data-lucide="terminal" class="w-3 h-3 text-hygge-accent"></i> 💻 在庫数式
+                    </button>
+
+                    <!-- SUM合計ボタン -->
+                    <button id="btn-sum" onclick="triggerSum()" class="px-2 py-1 bg-white hover:bg-hygge-accentSoft border border-hygge-woodLight/60 rounded-xl text-[10px] font-bold text-hygge-text flex items-center gap-1 transition-hygge shrink-0" title="選択した範囲の合計値を自動計算する">
+                        <i data-lucide="sigma" class="w-3.5 h-3.5 text-hygge-sage"></i> Σ SUM合計
+                    </button>
+                    
+                    <div class="w-px h-4 bg-hygge-woodLight shrink-0 mx-0.5"></div>
+                    <span class="px-1 text-[10px] font-bold text-hygge-gray shrink-0 select-none">あ</span>
+
+                </div>
+
+                <!-- 3. 名前ボックス（住所） & 数式バー -->
+                <div class="flex items-center border-b border-hygge-woodLight/60 text-[11px] bg-white">
+                    <div id="cell-address" class="w-14 text-center py-2 border-r border-hygge-woodLight/60 font-mono text-hygge-accent font-semibold bg-[#FAF7F2]/40">
+                        B5
+                    </div>
+                    <div class="px-2 text-hygge-gray shrink-0 select-none font-mono">
+                        fx |
+                    </div>
+                    <div class="flex-1">
+                        <input type="text" id="formula-input" oninput="updateCellFromInput(this.value)" placeholder="数式や数値を入力できます" class="w-full py-1.5 px-2 outline-none text-hygge-text font-mono bg-transparent placeholder-hygge-gray/40">
+                    </div>
+                </div>
+
+                <!-- 4. スプレッドシート グリッド領域 (レスポンシブ等幅設定・A〜D列完全等幅表示) -->
+                <div class="flex-1 overflow-auto bg-hygge-bg/20">
+                    <table class="w-full table-fixed border-collapse select-none">
+                        <thead>
+                            <tr class="bg-hygge-sheetHeader text-center text-hygge-text/75 font-semibold text-[10px]">
+                                <!-- 行番号列 (横幅固定) -->
+                                <th class="border-r border-b border-hygge-woodLight/60 w-10 py-2 bg-hygge-sheetHeader/80 sticky top-0 left-0 z-20"></th>
+                                <!-- 4つの列(A〜D)は％で均等かつ最適に配分し、どの幅でも等幅一画面収まります -->
+                                <th class="border-r border-b border-hygge-woodLight/60 py-2 w-[22%] sticky top-0 z-10">A (日付)</th>
+                                <th class="border-r border-b border-hygge-woodLight/60 py-2 w-[25%] sticky top-0 z-10">B (入庫)</th>
+                                <th class="border-r border-b border-hygge-woodLight/60 py-2 w-[25%] sticky top-0 z-10">C (出庫)</th>
+                                <th class="border-b border-hygge-woodLight/60 py-2 w-[28%] sticky top-0 z-10">D (本日在庫)</th>
+                            </tr>
+                        </thead>
+                        <tbody id="sheet-grid-body">
+                            <!-- JSによってグリッド行が動的作成されます -->
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- 5. フッター（シートタブなど） -->
+                <div class="bg-[#FAF7F2]/60 border-t border-hygge-woodLight/60 px-4 py-2 flex items-center justify-between text-[10px] text-hygge-gray font-light">
+                    <div class="flex items-center space-x-1.5">
+                        <span class="p-1 hover:bg-white rounded cursor-pointer"><i data-lucide="plus" class="w-3.5 h-3.5 text-hygge-accent"></i></span>
+                        <div class="bg-white border-t border-x border-hygge-woodLight/60 px-3 py-1 rounded-t-lg font-bold text-hygge-text flex items-center gap-1">
+                            <span class="w-2 h-2 rounded-full bg-hygge-sage animate-pulse"></span> 🏠 在庫管理シート
+                        </div>
+                    </div>
+                    <span>💻 セル内をダブルクリックして値を直接編集することもできます</span>
+                </div>
+
+            </div>
+        </div>
+
+    </main>
+
+    <!-- フッター -->
+    <footer class="bg-white border-t border-hygge-woodLight py-8 px-6 mt-12 text-center text-xs text-hygge-gray">
+        <div class="max-w-7xl mx-auto flex flex-col sm:flex-row justify-between items-center gap-4">
+            <p>© 2026 Googleスプレッドシート超入門 - 暮らしをやさしく整えるHyggeガイドブック</p>
+            <div class="flex space-x-4">
+                <a href="https://docs.google.com/spreadsheets" target="_blank" class="text-hygge-accent hover:underline font-semibold flex items-center gap-1">
+                    <i data-lucide="external-link" class="w-3.5 h-3.5"></i> 本物のGoogleスプレッドシートを開く
+                </a>
+            </div>
+        </div>
+    </footer>
+
+    <!-- JavaScript & インタラクティブロジック -->
+    <script>
+        // アプリケーション状態
+        let currentStep = 1;
+        const totalSteps = 5;
+
+        // 体験用シート初期データ（入出庫在庫管理表）
+        let sheetData = {
+            'A1': '日付',   'B1': '本日入庫数', 'C1': '本日出庫数', 'D1': '本日在庫数',
+            'A2': '6月1日', 'B2': '100',        'C2': '30',         'D2': '70',
+            'A3': '',       'B3': '50',         'C3': '40',         'D3': '',
+            'A4': '',       'B4': '80',         'C4': '60',         'D4': '',
+            'A5': '',       'B5': '120',        'C5': '50',         'D5': '',
+            'A6': '合計',   'B6': '',           'C6': '',           'D6': '—'
+        };
+
+        // セルのカスタム書式スタイル記録
+        let cellStyles = {
+            'A1': { bold: false, bg: '' }, 'B1': { bold: false, bg: '' }, 'C1': { bold: false, bg: '' }, 'D1': { bold: false, bg: '' },
+            'A2': { bold: false, bg: '' }, 'B2': { bold: false, bg: '' }, 'C2': { bold: false, bg: '' }, 'D2': { bold: false, bg: '' },
+            'A3': { bold: false, bg: '' }, 'B3': { bold: false, bg: '' }, 'C3': { bold: false, bg: '' }, 'D3': { bold: false, bg: '' },
+            'A4': { bold: false, bg: '' }, 'B4': { bold: false, bg: '' }, 'C4': { bold: false, bg: '' }, 'D4': { bold: false, bg: '' },
+            'A5': { bold: false, bg: '' }, 'B5': { bold: false, bg: '' }, 'C5': { bold: false, bg: '' }, 'D5': { bold: false, bg: '' },
+            'A6': { bold: false, bg: '' }, 'B6': { bold: false, bg: '' }, 'C6': { bold: false, bg: '' }, 'D6': { bold: false, bg: '' }
+        };
+
+        // 選択されているアクティブセル (初期選択 A2: 日付)
+        let activeRow = 2; 
+        let activeCol = 'A'; 
+
+        // お役立ち豆知識リスト
+        const tipsList = [
+            "最初に一番上の行（見出しヘッダー）を太字にして優しい背景色を塗るだけで、どこに何が書かれているかが一瞬で把握でき、脳のストレスが驚くほど減ります。",
+            "オートフィルは数字の連番（1, 2, 3...）だけでなく、「月曜日、火曜日...」や「第1クォーター、第2クォーター...」といった規則的な文字列も一瞬で補完してくれます。",
+            "関数で合計を求めるとき、裏側の売上金額の値が後から書き換えられても、自動計算された合計セルはリアルタイムで最新の正しい結果に連動して再計算されます。",
+            "セル同士を区切る枠線（罫線）は、太くて濃い黒色を全面に引くのではなく、淡いグレーやベージュの細い線を選ぶと、北欧風のすっきり洗練されたシートに仕上がります。",
+            "共同編集しているときに、他人がどのセルを見ているか（選択しているか）が相手のカラーカーソルで表示されます。誰がどこを編集しているかが分かって安心です。"
+        ];
+
+        // 初期化
+        window.onload = function() {
+            buildGrid();
+            updateActiveCellUI();
+            updateGuideUI();
+        };
+
+        // グリッドをHTMLテーブルとして動的生成
+        function buildGrid() {
+            const body = document.getElementById("sheet-grid-body");
+            body.innerHTML = "";
+
+            const cols = ['A', 'B', 'C', 'D'];
+            const maxRows = 7; // 1 to 7
+
+            for (let r = 1; r <= maxRows; r++) {
+                const tr = document.createElement("tr");
+                tr.className = "border-b border-hygge-woodLight/40 hover:bg-[#FAF7F2]/20";
+
+                // 行番号ヘッダー
+                const th = document.createElement("th");
+                th.className = "bg-hygge-sheetHeader/60 border-r border-hygge-woodLight/60 text-center py-2 text-[10px] text-hygge-gray select-none font-mono font-normal w-10 sticky left-0 z-10";
+                th.innerText = r;
+                tr.appendChild(th);
+
+                // 各セル
+                cols.forEach(col => {
+                    const td = document.createElement("td");
+                    const cellKey = `${col}${r}`;
+                    td.id = `cell-${cellKey}`;
+                    // はみ出しを防ぐため truncate (テキスト自動省略) を適用
+                    td.className = "border-r border-hygge-woodLight/40 px-2 py-2 text-[11px] font-mono select-none outline-none relative truncate transition-all duration-150 min-h-[30px]";
+                    
+                    // 値の描画
+                    td.innerText = sheetData[cellKey] || "";
+
+                    // スタイルの適用
+                    if (cellStyles[cellKey]) {
+                        if (cellStyles[cellKey].bold) {
+                            td.style.fontWeight = "bold";
+                        } else {
+                            td.style.fontWeight = "normal";
+                        }
+                        if (cellStyles[cellKey].bg) {
+                            td.style.backgroundColor = cellStyles[cellKey].bg;
+                        } else {
+                            td.style.backgroundColor = "";
+                        }
+                    }
+
+                    // シングルクリックイベント (セル選択)
+                    td.onclick = function() {
+                        selectCell(col, r);
+                    };
+
+                    // ダブルクリックイベント (直接編集入力モード)
+                    td.ondblclick = function() {
+                        enableDirectEdit(td, col, r);
+                    };
+
+                    tr.appendChild(td);
+                });
+
+                body.appendChild(tr);
+            }
+        }
+
+        // セルを選択
+        function selectCell(col, row) {
+            activeCol = col;
+            activeRow = row;
+
+            // 全セルの選択枠線をクリア
+            const allCells = document.querySelectorAll("#sheet-grid-body td");
+            allCells.forEach(c => {
+                c.style.boxShadow = "";
+                c.style.zIndex = "";
+            });
+
+            // 選択セルの強調 (Hyggeゴールド太枠)
+            const targetCell = document.getElementById(`cell-${col}${row}`);
+            if (targetCell) {
+                targetCell.style.boxShadow = "inset 0 0 0 2px #DEB887";
+                targetCell.style.zIndex = "10";
+            }
+
+            updateActiveCellUI();
+        }
+
+        // 選択セルの情報に合わせて数式バーと名前ボックスを更新
+        function updateActiveCellUI() {
+            const cellKey = `${activeCol}${activeRow}`;
+            document.getElementById("cell-address").innerText = cellKey;
+            
+            const formulaInput = document.getElementById("formula-input");
+            
+            // 仮想数式の表示ロジック
+            if (cellKey === 'D3' && sheetData['D3'] !== '') {
+                formulaInput.value = "=D2+B3-C3";
+            } else if (cellKey === 'D4' && sheetData['D4'] !== '') {
+                formulaInput.value = "=D3+B4-C4";
+            } else if (cellKey === 'D5' && sheetData['D5'] !== '') {
+                formulaInput.value = "=D4+B5-C5";
+            } else if (cellKey === 'B6' && sheetData['B6'] !== '') {
+                formulaInput.value = "=SUM(B2:B5)";
+            } else {
+                formulaInput.value = sheetData[cellKey] || "";
+            }
+        }
+
+        // 数式バーからの入力更新
+        function updateCellFromInput(val) {
+            const cellKey = `${activeCol}${activeRow}`;
+            sheetData[cellKey] = val;
+            
+            const targetCell = document.getElementById(`cell-${cellKey}`);
+            if (targetCell) {
+                targetCell.innerText = val;
+                // 書式が設定されていれば再適用
+                if (cellStyles[cellKey]) {
+                    if (cellStyles[cellKey].bold) targetCell.style.fontWeight = "bold";
+                    if (cellStyles[cellKey].bg) targetCell.style.backgroundColor = cellStyles[cellKey].bg;
+                }
+            }
+        }
+
+        // ダブルクリックによるセル内直接入力モード
+        function enableDirectEdit(td, col, row) {
+            if (td.querySelector("input")) return;
+
+            const originalVal = sheetData[`${col}${row}`] || "";
+            td.innerHTML = `<input type="text" id="direct-edit-input" class="absolute inset-0 w-full h-full bg-white text-hygge-text outline-none px-2 font-mono text-[11px]" value="${originalVal}">`;
+            
+            const input = document.getElementById("direct-edit-input");
+            input.focus();
+            input.select();
+
+            function finishEdit() {
+                const newVal = input.value;
+                sheetData[`${col}${row}`] = newVal;
+                td.innerText = newVal;
+                buildGrid(); // 再描画
+                selectCell(col, row);
+            }
+
+            input.onblur = finishEdit;
+            input.onkeydown = function(e) {
+                if (e.key === "Enter") {
+                    finishEdit();
+                }
+            };
+        }
+
+        // ガイドのステップ切替
+        function goToStep(step) {
+            if (step >= 1 && step <= totalSteps) {
+                currentStep = step;
+                updateGuideUI();
+            }
+        }
+
+        function nextStep() {
+            if (currentStep < totalSteps) {
+                currentStep++;
+                updateGuideUI();
+            }
+        }
+
+        function prevStep() {
+            if (currentStep > 1) {
+                currentStep--;
+                updateGuideUI();
+            }
+        }
+
+        // ガイドUIとシミュレーター連動ハイライトの更新
+        function updateGuideUI() {
+            // 全ステップのコンテンツを非表示に
+            for (let i = 1; i <= totalSteps; i++) {
+                document.getElementById(`guide-step-${i}`).classList.add("hidden");
+                const tab = document.getElementById(`step-tab-${i}`);
+                tab.className = "text-[11px] py-1.5 rounded-xl font-medium bg-hygge-bg text-hygge-text/70 hover:bg-hygge-accentSoft transition-hygge";
+            }
+
+            // 現在のステップを表示
+            document.getElementById(`guide-step-${currentStep}`).classList.remove("hidden");
+            
+            // アクティブタブのスタイル
+            const activeTab = document.getElementById(`step-tab-${currentStep}`);
+            activeTab.className = "text-[11px] py-1.5 rounded-xl font-medium bg-hygge-accent text-white transition-hygge font-bold shadow-sm";
+
+            // ボタン制御
+            document.getElementById("prev-btn").disabled = (currentStep === 1);
+            
+            const nextBtn = document.getElementById("next-btn");
+            if (currentStep === totalSteps) {
+                nextBtn.innerHTML = "最初から読む ↩";
+                nextBtn.onclick = () => goToStep(1);
+            } else {
+                nextBtn.innerHTML = "次のステップへ →";
+                nextBtn.onclick = nextStep;
+            }
+
+            // プログレスバー
+            const percentage = (currentStep / totalSteps) * 100;
+            document.getElementById("step-progress").style.width = `${percentage}%`;
+            document.getElementById("step-badge").innerText = `ステップ ${currentStep} / ${totalSteps}`;
+
+            // 豆知識の更新
+            document.getElementById("tips-box").innerText = tipsList[currentStep - 1];
+
+            // ステップごとのシミュレーターハイライト演出
+            clearAllHighlights();
+            if (currentStep === 1) {
+                // セル住所表示（名前ボックス）をハイライト
+                document.getElementById("cell-address").classList.add("highlight-active");
+                selectCell('D', 2); // 初期にD2（本日在庫）を選択状態に
+            } else if (currentStep === 2) {
+                // オートフィルボタンをハイライト
+                document.getElementById("btn-autofill").classList.add("highlight-active");
+                selectCell('A', 2); // 6月1日のセルを選択状態に
+            } else if (currentStep === 3) {
+                // 在庫数式適用ボタンをハイライト
+                document.getElementById("btn-calc").classList.add("highlight-active");
+                selectCell('D', 3); // D3（空の本日在庫セル）を選択
+            } else if (currentStep === 4) {
+                // SUM合計ボタンをハイライト
+                document.getElementById("btn-sum").classList.add("highlight-active");
+                selectCell('B', 6); // B6（入庫合計のセル）を選択
+            } else if (currentStep === 5) {
+                // 装飾ツールバーをハイライト
+                document.getElementById("btn-bold").classList.add("highlight-active");
+                document.getElementById("btn-color").classList.add("highlight-active");
+                // ヘッダー行全体を疑似的にハイライト選択
+                selectHeaderRow();
+            }
+        }
+
+        function clearAllHighlights() {
+            document.getElementById("cell-address").classList.remove("highlight-active");
+            document.getElementById("btn-autofill").classList.remove("highlight-active");
+            document.getElementById("btn-calc").classList.remove("highlight-active");
+            document.getElementById("btn-sum").classList.remove("highlight-active");
+            document.getElementById("btn-bold").classList.remove("highlight-active");
+            document.getElementById("btn-color").classList.remove("highlight-active");
+        }
+
+        // 1行目のヘッダーを一括選択
+        function selectHeaderRow() {
+            const cols = ['A', 'B', 'C', 'D'];
+            const r = 1; // 1行目
+            cols.forEach(col => {
+                const cell = document.getElementById(`cell-${col}${r}`);
+                if (cell) {
+                    cell.style.boxShadow = "inset 0 0 0 1px #DEB887, 0 0 4px rgba(222, 184, 135, 0.4)";
+                }
+            });
+            activeCol = 'A';
+            activeRow = 1;
+            updateActiveCellUI();
+        }
+
+        // --- ツールバーアクション ---
+
+        // 太字(B)トグル
+        function toggleBold() {
+            // ステップ5の動作時は1行目（ヘッダー）全体を太字に
+            if (currentStep === 5) {
+                ['A1', 'B1', 'C1', 'D1'].forEach(cellKey => {
+                    cellStyles[cellKey].bold = !cellStyles[cellKey].bold;
+                });
+                buildGrid();
+                selectHeaderRow();
+                showSuccessBubble("見出し文字を太字にできました！よりはっきりして在庫表が引き締まりました。");
+                return;
+            }
+
+            // 通常時
+            const cellKey = `${activeCol}${activeRow}`;
+            if (!cellStyles[cellKey]) {
+                cellStyles[cellKey] = { bold: true, bg: '' };
+            } else {
+                cellStyles[cellKey].bold = !cellStyles[cellKey].bold;
+            }
+            buildGrid();
+            selectCell(activeCol, activeRow);
+            showSuccessBubble("選択しているセルの文字を太字にしました。");
+        }
+
+        // 背景色(ペイント)の適用
+        function applyBgColor(color) {
+            // ステップ5の動作時は1行目（ヘッダー）全体をセージグリーンに
+            if (currentStep === 5) {
+                ['A1', 'B1', 'C1', 'D1'].forEach(cellKey => {
+                    cellStyles[cellKey].bg = '#EBF0EC'; // セージグリーン調
+                });
+                buildGrid();
+                selectHeaderRow();
+                showSuccessBubble("見出しに優しい北欧カラーが塗られました！とてもスッキリした印象です。");
+                return;
+            }
+
+            // 通常時
+            const cellKey = `${activeCol}${activeRow}`;
+            if (!cellStyles[cellKey]) {
+                cellStyles[cellKey] = { bold: false, bg: color };
+            } else {
+                cellStyles[cellKey].bg = color;
+            }
+            buildGrid();
+            selectCell(activeCol, activeRow);
+            showSuccessBubble("セルの背景に優しいカラーを彩りました。");
+        }
+
+        // オートフィル実行（A列 日付補完）
+        function triggerAutofill() {
+            if (currentStep === 2) {
+                sheetData['A3'] = '6月2日';
+                sheetData['A4'] = '6月3日';
+                sheetData['A5'] = '6月4日';
+                buildGrid();
+                selectCell('A', 5);
+                showSuccessBubble("オートフィルが実行されました！連続する『6月2日』『3月』『4日』が自動入力され、手間が省けました！");
+            } else {
+                // A2が選択されていたらA3〜A5を埋める
+                if (activeCol === 'A' && activeRow === 2) {
+                    sheetData['A3'] = '6月2日';
+                    sheetData['A4'] = '6月3日';
+                    sheetData['A5'] = '6月4日';
+                    buildGrid();
+                    showSuccessBubble("連続する日付データが自動で補完されました。");
+                } else {
+                    showSuccessBubble("連続する日付の起点（A2の6月1日）を選択してからオートフィルを押してください。");
+                }
+            }
+        }
+
+        // 在庫数式の適用 (D3〜D5を在庫推移計算で埋める)
+        function triggerCalc() {
+            if (currentStep === 3) {
+                sheetData['D3'] = '80';  // 70 + 50 - 40
+                sheetData['D4'] = '100'; // 80 + 80 - 60
+                sheetData['D5'] = '170'; // 100 + 120 - 50
+                buildGrid();
+                selectCell('D', 3);
+                showSuccessBubble("在庫の計算式（=前日在庫+本日入庫-本日出庫）が適用され、各日の在庫推移が自動計算されました！");
+            } else {
+                // D2が初期在庫70、順次計算
+                sheetData['D3'] = '80';
+                sheetData['D4'] = '100';
+                sheetData['D5'] = '170';
+                buildGrid();
+                selectCell(activeCol, activeRow);
+                showSuccessBubble("計算式による本日在庫の自動推移を反映しました。");
+            }
+        }
+
+        // SUM合計実行 (B6の入庫合計算出)
+        function triggerSum() {
+            const formulaInput = document.getElementById("formula-input");
+            
+            if (currentStep === 4) {
+                sheetData['B6'] = '350'; // 100 + 50 + 80 + 120
+                buildGrid();
+                selectCell('B', 6);
+                formulaInput.value = "=SUM(B2:B5)";
+                showSuccessBubble("入庫合計の数式『=SUM(B2:B5)』により、一瞬で合計『350』が自動算出されました！");
+            } else {
+                // 現在の選択セルにB2〜B5の合計値を格納
+                const sumValue = (parseInt(sheetData['B2']) || 0) + (parseInt(sheetData['B3']) || 0) + (parseInt(sheetData['B4']) || 0) + (parseInt(sheetData['B5']) || 0);
+                const cellKey = `${activeCol}${activeRow}`;
+                sheetData[cellKey] = sumValue.toString();
+                buildGrid();
+                selectCell(activeCol, activeRow);
+                formulaInput.value = `=SUM(B2:B5)`;
+                showSuccessBubble(`数式によって合計値『${sumValue}』を自動算出しました。`);
+            }
+        }
+
+        // シミュレーターを初期状態へ戻す
+        function resetSimulator() {
+            sheetData = {
+                'A1': '日付',   'B1': '本日入庫数', 'C1': '本日出庫数', 'D1': '本日在庫数',
+                'A2': '6月1日', 'B2': '100',        'C2': '30',         'D2': '70',
+                'A3': '',       'B3': '50',         'C3': '40',         'D3': '',
+                'A4': '',       'B4': '80',         'C4': '60',         'D4': '',
+                'A5': '',       'B5': '120',        'C5': '50',         'D5': '',
+                'A6': '合計',   'B6': '',           'C6': '',           'D6': '—'
+            };
+            cellStyles = {
+                'A1': { bold: false, bg: '' }, 'B1': { bold: false, bg: '' }, 'C1': { bold: false, bg: '' }, 'D1': { bold: false, bg: '' },
+                'A2': { bold: false, bg: '' }, 'B2': { bold: false, bg: '' }, 'C2': { bold: false, bg: '' }, 'D2': { bold: false, bg: '' },
+                'A3': { bold: false, bg: '' }, 'B3': { bold: false, bg: '' }, 'C3': { bold: false, bg: '' }, 'D3': { bold: false, bg: '' },
+                'A4': { bold: false, bg: '' }, 'B4': { bold: false, bg: '' }, 'C4': { bold: false, bg: '' }, 'D4': { bold: false, bg: '' },
+                'A5': { bold: false, bg: '' }, 'B5': { bold: false, bg: '' }, 'C5': { bold: false, bg: '' }, 'D5': { bold: false, bg: '' },
+                'A6': { bold: false, bg: '' }, 'B6': { bold: false, bg: '' }, 'C6': { bold: false, bg: '' }, 'D6': { bold: false, bg: '' }
+            };
+            buildGrid();
+            selectCell('A', 2);
+            showSuccessBubble("スプレッドシートの手帳を、最初の綺麗な状態にリセットしました！");
+        }
+
+        // トースト通知（メッセージバルーン）
+        function showSuccessBubble(message) {
+            const existing = document.querySelectorAll(".hygge-toast");
+            existing.forEach(t => t.remove());
+
+            const bubble = document.createElement("div");
+            bubble.className = "hygge-toast fixed bottom-6 right-6 bg-hygge-text text-white text-xs px-5 py-4 rounded-2xl shadow-2xl z-50 transition-all transform translate-y-10 opacity-0 duration-300 max-w-sm flex items-start space-x-3 border border-hygge-woodLight/30";
+            bubble.innerHTML = `
+                <span class="text-base text-hygge-accent shrink-0">🕯️</span>
+                <span class="leading-relaxed font-light">${message}</span>
+            `;
+            document.body.appendChild(bubble);
+
+            // アニメーション表示
+            setTimeout(() => {
+                bubble.className = "hygge-toast fixed bottom-6 right-6 bg-hygge-text text-white text-xs px-5 py-4 rounded-2xl shadow-2xl z-50 transition-all transform translate-y-0 opacity-100 duration-300 max-w-sm flex items-start space-x-3 border border-hygge-woodLight/30";
+            }, 50);
+
+            // 自動消去
+            setTimeout(() => {
+                bubble.className = "hygge-toast fixed bottom-6 right-6 bg-hygge-text text-white text-xs px-5 py-4 rounded-2xl shadow-2xl z-50 transition-all transform translate-y-10 opacity-0 duration-300 max-w-sm flex items-start space-x-3 border border-hygge-woodLight/30";
+                setTimeout(() => bubble.remove(), 300);
+            }, 5000);
+        }
+
+        // モバイル用目次のトグル
+        function toggleMobileMenu() {
+            const content = document.getElementById('mobile-menu-content');
+            const arrow = document.getElementById('mobile-menu-arrow');
+            
+            if (content.classList.contains('hidden')) {
+                content.classList.remove('hidden');
+                arrow.classList.add('rotate-180');
+            } else {
+                content.classList.add('hidden');
+                arrow.classList.remove('rotate-180');
+            }
+        }
+    </script>
+    <script>
+        // Lucideアイコン作成
+        lucide.createIcons();
+    </script>
+</body>
+</html>
